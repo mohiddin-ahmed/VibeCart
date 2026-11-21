@@ -5,16 +5,27 @@ import ProductCard from '../components/ProductCard';
 
 const API = '/api';
 
-function Home() {
+const categories = ['All', 'Electronics', 'Smartphones', 'Laptops', 'Footwear', 'Clothing'];
+
+function Home({ onCartUpdate }) {
   const [products, setProducts] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
+  const [activeCategory, setActiveCategory] = useState('All');
+  const [toast, setToast] = useState('');
 
-  const fetchProducts = async (query) => {
+  const fetchProducts = async (query, category) => {
     setLoading(true);
     try {
-      const url = query ? `${API}/products/search?q=${query}` : `${API}/products`;
-      const res = await axios.get(url);
+      let url = `${API}/products`;
+      const params = new URLSearchParams();
+      if (query) {
+        url = `${API}/products/search`;
+        params.set('q', query);
+      }
+      if (category && category !== 'All') params.set('category', category);
+      const fullUrl = params.toString() ? `${url}?${params}` : url;
+      const res = await axios.get(fullUrl);
       setProducts(res.data.products || []);
     } catch (err) {
       console.error('Failed to fetch products:', err);
@@ -22,11 +33,23 @@ function Home() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchProducts(); }, []);
+  useEffect(() => { fetchProducts('', activeCategory); }, [activeCategory]);
 
   const handleSearch = (e) => {
     e.preventDefault();
+    setActiveCategory('All');
     fetchProducts(search);
+  };
+
+  const handleCategoryClick = (cat) => {
+    setActiveCategory(cat);
+    setSearch('');
+  };
+
+  const showToast = (name) => {
+    setToast(`✅ ${name} added to cart!`);
+    if (onCartUpdate) onCartUpdate(prev => (typeof prev === 'number' ? prev + 1 : 1));
+    setTimeout(() => setToast(''), 2500);
   };
 
   return (
@@ -34,24 +57,52 @@ function Home() {
       <VoiceAgent />
 
       <section className="search-section">
-        <form onSubmit={handleSearch}>
+        <form className="search-form" onSubmit={handleSearch}>
           <input
             type="text"
-            placeholder="Search products... (e.g., headphones, laptop)"
+            placeholder="Search products... headphones, laptop, shoes"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-          <button type="submit">🔍 Search</button>
+          <button type="submit">Search</button>
         </form>
       </section>
 
-      <section className="products-grid">
-        {loading && <p>Loading products...</p>}
-        {!loading && products.length === 0 && <p>No products found.</p>}
-        {products.map((product) => (
-          <ProductCard key={product._id} product={product} />
+      <div className="category-tabs">
+        {categories.map((cat) => (
+          <button
+            key={cat}
+            className={`cat-tab ${activeCategory === cat ? 'active' : ''}`}
+            onClick={() => handleCategoryClick(cat)}
+          >
+            {cat}
+          </button>
         ))}
-      </section>
+      </div>
+
+      <div className="section-header">
+        <h3>{activeCategory === 'All' ? 'All Products' : activeCategory}</h3>
+        <span>{products.length} items</span>
+      </div>
+
+      {loading ? (
+        <div className="loading">
+          <div className="loading-spinner" />
+          <p>Loading products...</p>
+        </div>
+      ) : products.length === 0 ? (
+        <div className="no-results">
+          <p>No products found. Try a different search or category.</p>
+        </div>
+      ) : (
+        <section className="products-grid">
+          {products.map((product) => (
+            <ProductCard key={product._id} product={product} onAdded={showToast} />
+          ))}
+        </section>
+      )}
+
+      <div className={`toast ${toast ? 'show' : ''}`}>{toast}</div>
     </div>
   );
 }

@@ -5,18 +5,17 @@ const API = '/api';
 
 function VoiceAgent() {
   const [connected, setConnected] = useState(false);
-  const [status, setStatus] = useState('Click to start voice shopping');
+  const [status, setStatus] = useState('Tap to start voice shopping');
 
   const handleConnect = async () => {
     if (connected) {
       setConnected(false);
-      setStatus('Disconnected. Click to reconnect.');
+      setStatus('Disconnected. Tap to reconnect.');
       return;
     }
 
     try {
-      setStatus('Connecting to VibeCart agent...');
-      // Get Agora token from backend
+      setStatus('Connecting to VibeCart AI...');
       const res = await axios.post(`${API}/agora/token`, {
         channelName: `vibecart-${Date.now()}`,
         uid: 0,
@@ -24,29 +23,39 @@ function VoiceAgent() {
 
       if (res.data.success) {
         setConnected(true);
-        setStatus('🎙️ Connected! Speak to shop...');
+        setStatus('Listening... speak now');
         console.log('Agora token:', res.data.token);
-        // In production: use Agora RTC SDK to join channel with this token
-        // and connect to the Conversational AI agent
       }
     } catch (err) {
-      setStatus('Connection failed. Try again.');
+      setStatus('Connection failed. Tap to retry.');
       console.error('Connection error:', err);
     }
   };
 
   return (
-    <div className="voice-agent">
-      <div className={`agent-orb ${connected ? 'active' : ''}`} onClick={handleConnect}>
-        <span className="orb-icon">{connected ? '🎙️' : '🔇'}</span>
+    <section className="voice-section">
+      <div className="voice-hero-text">
+        <h2>Shop effortlessly with <strong>smart AI</strong></h2>
       </div>
-      <p className="agent-status">{status}</p>
-      <p className="agent-hint">
-        {connected
-          ? 'Try: "Show me headphones under 5000 rupees"'
-          : 'Start a voice conversation with VibeCart AI'}
-      </p>
-    </div>
+
+      <div className="voice-orb-container">
+        <div className="voice-orb-rings" />
+        <div className={`voice-orb ${connected ? 'active' : ''}`} onClick={handleConnect}>
+          <span className="orb-icon">{connected ? '🎙️' : '🎧'}</span>
+        </div>
+      </div>
+
+      <div className={`waveform ${connected ? 'active' : ''}`}>
+        {[...Array(7)].map((_, i) => (
+          <div key={i} className="wave-bar" />
+        ))}
+      </div>
+
+      <p className={`voice-status ${connected ? 'connected' : ''}`}>{status}</p>
+      <span className="voice-hint">
+        {connected ? '💬 "Show me headphones under ₹5000"' : '🎧 Start talking to shop with AI'}
+      </span>
+    </section>
   );
 }
 
