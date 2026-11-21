@@ -1,66 +1,39 @@
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import React from 'react';
 
-const API = '/api';
+function CartView({ items, clearCart, goShop }) {
+  const total = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
 
-function CartView({ userId }) {
-  const [cart, setCart] = useState({ items: [], totalAmount: 0 });
-  const [loading, setLoading] = useState(true);
-
-  const fetchCart = async () => {
-    try {
-      const res = await axios.get(`${API}/cart/${userId}`);
-      setCart(res.data);
-    } catch (err) {
-      console.error('Failed to fetch cart:', err);
-    }
-    setLoading(false);
+  const handleCheckout = () => {
+    if (items.length === 0) return;
+    alert(`🎉 Order placed successfully!\n\nTotal: ₹${total.toLocaleString('en-IN')}\nItems: ${items.length}\n\nThank you for shopping with VibeCart AI!`);
+    clearCart();
   };
-
-  useEffect(() => { fetchCart(); }, [userId]);
-
-  const handleCheckout = async () => {
-    try {
-      const res = await axios.post(`${API}/cart/checkout`, { userId });
-      alert(`🎉 Order placed! Order ID: ${res.data.order._id}`);
-      fetchCart();
-    } catch (err) {
-      alert('Checkout failed: ' + (err.response?.data?.error || err.message));
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="loading">
-        <div className="loading-spinner" />
-        <p>Loading cart...</p>
-      </div>
-    );
-  }
 
   return (
     <div className="cart-view">
       <div className="cart-header">
-        <h2>Your Cart</h2>
-        {cart.items.length > 0 && (
-          <span className="cart-count">{cart.items.length} items</span>
+        <h2>🛒 Your Cart</h2>
+        {items.length > 0 && (
+          <span className="cart-count">{items.reduce((s, i) => s + i.quantity, 0)} items</span>
         )}
       </div>
 
-      {cart.items.length === 0 ? (
+      {items.length === 0 ? (
         <div className="empty-cart">
           <div className="empty-cart-icon">🛒</div>
-          <p>Your cart is empty.</p>
-          <p style={{ marginTop: '0.5rem', fontSize: '0.85rem' }}>Try voice shopping — tap the orb on the home page!</p>
+          <p>Your cart is empty</p>
+          <p className="empty-sub">Start voice shopping or browse products!</p>
+          <button className="shop-btn" onClick={goShop}>🛍️ Start Shopping</button>
         </div>
       ) : (
         <>
           <div className="cart-items">
-            {cart.items.map((item, i) => (
+            {items.map((item, i) => (
               <div key={i} className="cart-item">
-                <div className="cart-item-image">📦</div>
+                <div className="cart-item-image">{item.emoji || '📦'}</div>
                 <div className="cart-item-info">
-                  <div className="cart-item-name">{item.product?.name || 'Product'}</div>
+                  <div className="cart-item-name">{item.name}</div>
+                  <div className="cart-item-brand">{item.brand}</div>
                   <div className="cart-item-qty">Qty: {item.quantity}</div>
                 </div>
                 <div className="cart-item-price">₹{(item.price * item.quantity).toLocaleString('en-IN')}</div>
@@ -70,22 +43,28 @@ function CartView({ userId }) {
 
           <div className="cart-summary">
             <div className="cart-row">
-              <span>Subtotal</span>
-              <span>₹{cart.totalAmount?.toLocaleString('en-IN')}</span>
+              <span>Subtotal ({items.reduce((s, i) => s + i.quantity, 0)} items)</span>
+              <span>₹{total.toLocaleString('en-IN')}</span>
             </div>
             <div className="cart-row">
               <span>Delivery</span>
-              <span style={{ color: '#34d399' }}>Free</span>
+              <span className="free-delivery">FREE</span>
+            </div>
+            <div className="cart-row">
+              <span>AI Shopping Discount</span>
+              <span className="discount">-₹0</span>
             </div>
             <div className="cart-row total">
               <span>Total</span>
-              <span>₹{cart.totalAmount?.toLocaleString('en-IN')}</span>
+              <span>₹{total.toLocaleString('en-IN')}</span>
             </div>
           </div>
 
           <button className="checkout-btn" onClick={handleCheckout}>
-            Checkout — ₹{cart.totalAmount?.toLocaleString('en-IN')}
+            ✅ Place Order — ₹{total.toLocaleString('en-IN')}
           </button>
+
+          <p className="secure-text">🔒 Secured by Agora Voice Authentication</p>
         </>
       )}
     </div>
