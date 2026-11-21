@@ -5,6 +5,14 @@ import demoProducts from '../data/products';
 
 const categories = ['All', 'Electronics', 'Smartphones', 'Laptops', 'Footwear', 'Clothing'];
 
+// Helper to clean search phrases like "liked to buy headphones" -> "headphones"
+function cleanSearchQuery(raw) {
+  if (!raw) return '';
+  const stopWords = ['liked', 'like', 'to', 'buy', 'want', 'need', 'have', 'show', 'find', 'me', 'for', 'i', 'can', 'get', 'a', 'an', 'the', 'please', 'give', 'looking', 'some'];
+  const words = raw.toLowerCase().trim().split(/\s+/).filter(w => !stopWords.includes(w));
+  return words.join(' ');
+}
+
 function Home({ addToCart, cartItems = [], goToCart }) {
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
@@ -13,20 +21,43 @@ function Home({ addToCart, cartItems = [], goToCart }) {
   const cartTotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
+  // Smart multi-keyword fuzzy filtering
   const filtered = useMemo(() => {
     let list = demoProducts;
     if (activeCategory !== 'All') {
       list = list.filter(p => p.category === activeCategory);
     }
+
     if (search.trim()) {
-      const q = search.toLowerCase();
-      list = list.filter(p =>
-        p.name.toLowerCase().includes(q) ||
-        p.description.toLowerCase().includes(q) ||
-        p.brand.toLowerCase().includes(q) ||
-        p.category.toLowerCase().includes(q) ||
-        p.features.some(f => f.toLowerCase().includes(q))
-      );
+      const cleaned = cleanSearchQuery(search);
+      const queryWords = cleaned.split(/\s+/).filter(Boolean);
+
+      // If cleaning removed everything, fallback to raw search
+      const terms = queryWords.length > 0 ? queryWords : search.toLowerCase().trim().split(/\s+/);
+
+      list = list.filter(p => {
+        const pName = p.name.toLowerCase();
+        const pDesc = p.description.toLowerCase();
+        const pBrand = p.brand.toLowerCase();
+        const pCat = p.category.toLowerCase();
+        const pFeat = p.features.map(f => f.toLowerCase()).join(' ');
+
+        // Check if ANY term matches
+        return terms.some(term =>
+          pName.includes(term) ||
+          pDesc.includes(term) ||
+          pBrand.includes(term) ||
+          pCat.includes(term) ||
+          pFeat.includes(term) ||
+          (term.includes('headphone') && pCat === 'electronics') ||
+          (term.includes('phone') && pCat === 'smartphones') ||
+          (term.includes('laptop') && pCat === 'laptops') ||
+          (term.includes('shoe') && pCat === 'footwear') ||
+          (term.includes('sneaker') && pCat === 'footwear') ||
+          (term.includes('cloth') && pCat === 'clothing') ||
+          (term.includes('jean') && pCat === 'clothing')
+        );
+      });
     }
     return list;
   }, [search, activeCategory]);
@@ -36,10 +67,16 @@ function Home({ addToCart, cartItems = [], goToCart }) {
     setActiveCategory('All');
   };
 
-  const handleAdd = (product) => {
+  const handleAdd = (product, autoCheckout = false) => {
     addToCart(product);
-    setToast(`✅ ${product.name} added to shopping bag!`);
+    setToast(`✅ ${product.name} added to bag!`);
     setTimeout(() => setToast(''), 2500);
+
+    if (autoCheckout && goToCart) {
+      setTimeout(() => {
+        goToCart();
+      }, 600);
+    }
   };
 
   // Connects Voice Assistant speech actions directly to UI state & navigation
@@ -47,7 +84,12 @@ function Home({ addToCart, cartItems = [], goToCart }) {
     if (action === 'add') {
       const found = demoProducts.find(p => p.name.toLowerCase().includes(payload.toLowerCase()));
       if (found) {
-        handleAdd(found);
+        handleAdd(found, false);
+      }
+    } else if (action === 'buy_direct') {
+      const found = demoProducts.find(p => p.name.toLowerCase().includes(payload.toLowerCase()));
+      if (found) {
+        handleAdd(found, true);
       }
     } else if (action === 'category') {
       setActiveCategory(payload);
@@ -64,7 +106,7 @@ function Home({ addToCart, cartItems = [], goToCart }) {
     <div className="home">
       <VoiceAgent onVoiceAction={handleVoiceAction} cartCount={cartItemCount} />
 
-      {/* 3-Step Clear Onboarding Flow (Makes shopping vision crystal clear) */}
+      {/* 3-Step Clear Onboarding Flow */}
       <div className="onboarding-guide-card">
         <div className="guide-header">
           <span className="guide-sparkle">✨</span>
@@ -75,15 +117,15 @@ function Home({ addToCart, cartItems = [], goToCart }) {
             <span className="step-num">1</span>
             <div className="step-content">
               <strong>🎙️ Talk & Search</strong>
-              <p>Say "Laptops under 1 lakh" or "Sony vs boAt"</p>
+              <p>Say "I want headphones" or "Laptops under 1 lakh"</p>
             </div>
           </div>
           <div className="guide-arrow">➔</div>
           <div className="guide-step">
             <span className="step-num">2</span>
             <div className="step-content">
-              <strong>🛍️ Add Multiple Items</strong>
-              <p>Say "Add boAt to cart" (keep speaking for more!)</p>
+              <strong>🛍️ Choose & Add</strong>
+              <p>AI asks which one you prefer & adds it instantly</p>
             </div>
           </div>
           <div className="guide-arrow">➔</div>
@@ -155,19 +197,19 @@ function Home({ addToCart, cartItems = [], goToCart }) {
       ) : (
         <section className="products-grid">
           {filtered.map((product) => (
-            <ProductCard key={product.id} product={product} onAdd={() => handleAdd(product)} />
+            <ProductCard key={product.id} product={product} onAdd={() => handleAdd(product, false)} />
           ))}
         </section>
       )}
 
-      {/* Floating Bottom Cart Review Pill (When user has added items) */}
+      {/* Floating Bottom Cart Review Pill (Only when items exist) */}
       {cartItemCount > 0 && (
         <div className="floating-cart-pill" onClick={goToCart}>
           <div className="floating-cart-info">
             <span className="cart-orb-icon">🛍️</span>
             <div>
               <div className="floating-cart-title">{cartItemCount} item{cartItemCount > 1 ? 's' : ''} in Bag • ₹{cartTotal.toLocaleString('en-IN')}</div>
-              <div className="floating-cart-sub">🗣️ Say "Checkout" anytime or tap to review & place order</div>
+              <div className="floating-cart-sub">🗣️ Say "Checkout" anytime or tap to place order</div>
             </div>
           </div>
           <button className="floating-checkout-btn">
@@ -176,7 +218,8 @@ function Home({ addToCart, cartItems = [], goToCart }) {
         </div>
       )}
 
-      <div className={`toast ${toast ? 'show' : ''}`}>{toast}</div>
+      {/* Toast Notification - ONLY renders if toast has text so no empty border appears! */}
+      {toast && <div className="toast show">{toast}</div>}
     </div>
   );
 }
