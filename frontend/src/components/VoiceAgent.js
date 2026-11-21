@@ -393,10 +393,20 @@ function VoiceAgent({ onVoiceAction, cartCount = 0 }) {
     <section className="voice-section">
       <div className="voice-hero-text">
         <h2>Shop effortlessly with<br /><strong>smart AI voice</strong></h2>
-        <p className="voice-sub">Agora RTC Conversational AI + Murf Falcon Low-Latency Speech Synthesis</p>
+        <div className="voice-sub">
+          <span className="google-dot-pill">
+            <span className="g-dot b" />
+            <span className="g-dot r" />
+            <span className="g-dot y" />
+            <span className="g-dot g" />
+            Google DevFest Inspired Design
+          </span>
+          <span>•</span>
+          <span>Agora RTC Realtime Voice + Murf Falcon Low-Latency TTS</span>
+        </div>
       </div>
 
-      {/* Main Animated Glowing Voice Orb */}
+      {/* Main Animated Glowing DevFest Voice Orb */}
       <div className="voice-orb-container">
         <div className={`voice-orb-ring ring-1 ${isListening ? 'active' : ''}`} />
         <div className={`voice-orb-ring ring-2 ${isListening ? 'active' : ''}`} />
@@ -412,7 +422,7 @@ function VoiceAgent({ onVoiceAction, cartCount = 0 }) {
         </div>
       </div>
 
-      {/* Real-time Dynamic Waveform Bars */}
+      {/* Multi-Colored DevFest Dynamic Waveform Bars */}
       <div className={`waveform ${isListening ? 'active' : ''}`}>
         {[...Array(9)].map((_, i) => <div key={i} className="wave-bar" />)}
       </div>
@@ -468,7 +478,7 @@ function VoiceAgent({ onVoiceAction, cartCount = 0 }) {
           {/* Contextual Next Steps / Instant Action Buttons */}
           {suggestedActions && suggestedActions.length > 0 && (
             <div className="suggested-actions-row">
-              <span className="actions-hint">Suggested next action:</span>
+              <span className="actions-hint">⚡ Instant One-Click Action:</span>
               <div className="actions-list">
                 {suggestedActions.map((act, i) => (
                   <button
@@ -498,7 +508,7 @@ function VoiceAgent({ onVoiceAction, cartCount = 0 }) {
 
       {/* Pre-filled Quick Prompts */}
       <div className="prefilled-container">
-        <p className="prefilled-title">💡 One-Tap Voice Inquiries (Tap to test):</p>
+        <p className="prefilled-title">💡 One-Tap Quick Voice Inquiries (Tap to test):</p>
         <div className="voice-chips">
           {QUICK_PROMPTS.map((p, idx) => (
             <button
