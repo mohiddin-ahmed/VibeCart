@@ -1,4 +1,4 @@
-// Curated high-resolution Unsplash product catalog
+// Comprehensive high-resolution Unsplash product catalog
 const demoProducts = [
   {
     id: '1',
@@ -99,14 +99,29 @@ const demoProducts = [
     category: 'Laptops',
     brand: 'HP',
     stock: 22,
-    rating: 4.3,
+    rating: 4.4,
     reviewsCount: 780,
     features: ['Intel Core i5', '16GB RAM', '512GB SSD', 'B&O Audio'],
     image: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=800&auto=format&fit=crop&q=80',
-    badge: 'Popular',
+    badge: 'Best Under 60k',
   },
   {
     id: '8',
+    name: 'ASUS Vivobook 16 OLED Slim Laptop',
+    description: 'Vibrant 16-inch 3.2K OLED display, Intel Core i7 13th Gen, 16GB RAM, military-grade durability, and fast charging.',
+    price: 74990,
+    originalPrice: 89990,
+    category: 'Laptops',
+    brand: 'ASUS',
+    stock: 15,
+    rating: 4.6,
+    reviewsCount: 520,
+    features: ['16" 3.2K OLED', 'Intel Core i7', '16GB RAM', 'Backlit Keyboard'],
+    image: 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=800&auto=format&fit=crop&q=80',
+    badge: 'Best Under 1 Lakh',
+  },
+  {
+    id: '9',
     name: 'Nike Air Max 270 Athletic Sneakers',
     description: 'Boasts Nike’s biggest heel Air unit yet for a super-soft ride that feels as impossible as it looks.',
     price: 12995,
@@ -121,7 +136,7 @@ const demoProducts = [
     badge: 'Trending',
   },
   {
-    id: '9',
+    id: '10',
     name: 'Puma RS-X Triple Retro Sneakers',
     description: 'Re-imagined street style design with bold chunky silhouette, RS tech cushioning, and durable construction.',
     price: 7999,
@@ -136,7 +151,7 @@ const demoProducts = [
     badge: 'Streetwear',
   },
   {
-    id: '10',
+    id: '11',
     name: 'Apple Watch Ultra 2 Titanium GPS',
     description: 'The most rugged and capable Apple Watch. Engineered for outdoor adventures and endurance athletes.',
     price: 89900,
@@ -151,7 +166,7 @@ const demoProducts = [
     badge: 'Rugged Pro',
   },
   {
-    id: '11',
+    id: '12',
     name: 'Sony PlayStation 5 Slim Console',
     description: 'Unleash new gaming possibilities. Ultra-high speed SSD, ray tracing, 4K gaming, and DualSense haptic feedback.',
     price: 49990,
@@ -166,7 +181,7 @@ const demoProducts = [
     badge: 'Gaming',
   },
   {
-    id: '12',
+    id: '13',
     name: "Levi's 511 Slim Fit Premium Denim",
     description: 'A modern slim with room to move. Added stretch for all-day comfort and timeless authentic wash.',
     price: 2999,
