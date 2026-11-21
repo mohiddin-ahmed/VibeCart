@@ -3,7 +3,7 @@ import axios from 'axios';
 import VoiceAgent from '../components/VoiceAgent';
 import ProductCard from '../components/ProductCard';
 
-const API = 'http://localhost:5000/api';
+const API = '/api';
 
 function Home() {
   const [products, setProducts] = useState([]);

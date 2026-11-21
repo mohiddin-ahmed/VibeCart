@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
-const API = 'http://localhost:5000/api';
+const API = '/api';
 
 function CartView({ userId }) {
   const [cart, setCart] = useState({ items: [], totalAmount: 0 });
