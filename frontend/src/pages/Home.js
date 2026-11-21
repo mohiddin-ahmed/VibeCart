@@ -5,10 +5,13 @@ import demoProducts from '../data/products';
 
 const categories = ['All', 'Electronics', 'Smartphones', 'Laptops', 'Footwear', 'Clothing'];
 
-function Home({ addToCart }) {
+function Home({ addToCart, cartItems = [], goToCart }) {
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
   const [toast, setToast] = useState('');
+
+  const cartTotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
   const filtered = useMemo(() => {
     let list = demoProducts;
@@ -35,11 +38,11 @@ function Home({ addToCart }) {
 
   const handleAdd = (product) => {
     addToCart(product);
-    setToast(`✅ ${product.name} added to cart!`);
+    setToast(`✅ ${product.name} added to shopping bag!`);
     setTimeout(() => setToast(''), 2500);
   };
 
-  // Connects Voice Assistant speech actions directly to UI state
+  // Connects Voice Assistant speech actions directly to UI state & navigation
   const handleVoiceAction = (action, payload) => {
     if (action === 'add') {
       const found = demoProducts.find(p => p.name.toLowerCase().includes(payload.toLowerCase()));
@@ -52,13 +55,49 @@ function Home({ addToCart }) {
     } else if (action === 'search') {
       setActiveCategory('All');
       setSearch(payload);
+    } else if (action === 'view_cart' || action === 'checkout') {
+      if (goToCart) goToCart();
     }
   };
 
   return (
     <div className="home">
-      <VoiceAgent onVoiceAction={handleVoiceAction} />
+      <VoiceAgent onVoiceAction={handleVoiceAction} cartCount={cartItemCount} />
 
+      {/* 3-Step Clear Onboarding Flow (Makes shopping vision crystal clear) */}
+      <div className="onboarding-guide-card">
+        <div className="guide-header">
+          <span className="guide-sparkle">✨</span>
+          <h4>How Continuous Voice Shopping Works</h4>
+        </div>
+        <div className="guide-steps">
+          <div className="guide-step">
+            <span className="step-num">1</span>
+            <div className="step-content">
+              <strong>🎙️ Talk & Search</strong>
+              <p>Say "Laptops under 1 lakh" or "Sony vs boAt"</p>
+            </div>
+          </div>
+          <div className="guide-arrow">➔</div>
+          <div className="guide-step">
+            <span className="step-num">2</span>
+            <div className="step-content">
+              <strong>🛍️ Add Multiple Items</strong>
+              <p>Say "Add boAt to cart" (keep speaking for more!)</p>
+            </div>
+          </div>
+          <div className="guide-arrow">➔</div>
+          <div className="guide-step">
+            <span className="step-num">3</span>
+            <div className="step-content">
+              <strong>💳 Voice Checkout</strong>
+              <p>Say "Checkout" anytime or tap Bag to finish</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Search Bar */}
       <section className="search-section">
         <form className="search-form" onSubmit={handleSearch}>
           <input
@@ -81,6 +120,7 @@ function Home({ addToCart }) {
         </form>
       </section>
 
+      {/* Category Tabs */}
       <div className="category-tabs">
         {categories.map((cat) => (
           <button
@@ -93,11 +133,13 @@ function Home({ addToCart }) {
         ))}
       </div>
 
+      {/* Section Header */}
       <div className="section-header">
-        <h3>{activeCategory === 'All' ? '✨ All Products' : `📂 ${activeCategory}`}</h3>
-        <span>{filtered.length} items found</span>
+        <h3>{activeCategory === 'All' ? '✨ Featured Products' : `📂 ${activeCategory}`}</h3>
+        <span>{filtered.length} items available</span>
       </div>
 
+      {/* Flowing Product Grid */}
       {filtered.length === 0 ? (
         <div className="no-results">
           <p style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>🔍</p>
@@ -116,6 +158,22 @@ function Home({ addToCart }) {
             <ProductCard key={product.id} product={product} onAdd={() => handleAdd(product)} />
           ))}
         </section>
+      )}
+
+      {/* Floating Bottom Cart Review Pill (When user has added items) */}
+      {cartItemCount > 0 && (
+        <div className="floating-cart-pill" onClick={goToCart}>
+          <div className="floating-cart-info">
+            <span className="cart-orb-icon">🛍️</span>
+            <div>
+              <div className="floating-cart-title">{cartItemCount} item{cartItemCount > 1 ? 's' : ''} in Bag • ₹{cartTotal.toLocaleString('en-IN')}</div>
+              <div className="floating-cart-sub">🗣️ Say "Checkout" anytime or tap to review & place order</div>
+            </div>
+          </div>
+          <button className="floating-checkout-btn">
+            Checkout →
+          </button>
+        </div>
       )}
 
       <div className={`toast ${toast ? 'show' : ''}`}>{toast}</div>

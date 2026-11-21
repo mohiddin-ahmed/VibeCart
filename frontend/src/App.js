@@ -28,20 +28,36 @@ function App() {
             <h1>VibeCart</h1>
           </div>
           <div className="header-right">
-            <span className="header-badge">AI Powered</span>
+            <span className="header-badge">AI Conversational Commerce</span>
             <nav className="header-nav">
-              <button className={view === 'home' ? 'active' : ''} onClick={() => setView('home')}>Shop</button>
+              <button className={view === 'home' ? 'active' : ''} onClick={() => setView('home')}>
+                Shop
+              </button>
               <button className={view === 'cart' ? 'active' : ''} onClick={() => setView('cart')}>
-                Cart {cartItems.length > 0 && <span className="nav-badge">{cartItems.reduce((s,i) => s+i.quantity, 0)}</span>}
+                Bag {cartItems.length > 0 && <span className="nav-badge">{cartItems.reduce((s, i) => s + i.quantity, 0)}</span>}
               </button>
             </nav>
           </div>
         </div>
       </header>
+      
       <main>
-        {view === 'home' && <Home addToCart={addToCart} />}
-        {view === 'cart' && <CartView items={cartItems} clearCart={clearCart} goShop={() => setView('home')} />}
+        {view === 'home' && (
+          <Home
+            addToCart={addToCart}
+            cartItems={cartItems}
+            goToCart={() => setView('cart')}
+          />
+        )}
+        {view === 'cart' && (
+          <CartView
+            items={cartItems}
+            clearCart={clearCart}
+            goShop={() => setView('home')}
+          />
+        )}
       </main>
+
       <footer className="app-footer">
         <p>Built with <span className="accent">Agora Conversational AI</span> + <span className="accent">Murf Falcon TTS</span></p>
         <p className="footer-sub">KNOTiC AI Accelerator Hub — Round 3</p>

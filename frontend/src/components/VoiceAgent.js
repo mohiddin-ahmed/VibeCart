@@ -9,15 +9,16 @@ const QUICK_PROMPTS = [
   { label: '👟 Nike & Puma Sneakers', text: 'Show athletic running sneakers' },
   { label: '⌚ Apple Watch Ultra', text: 'Do you have Apple Watch in stock?' },
   { label: '🛒 Add boAt to cart', text: 'Add boAt Rockerz 450 to my cart' },
-  { label: '✨ Show All Products', text: 'Show all available products in store' },
+  { label: '💳 View Cart & Checkout', text: 'Show my cart and checkout' },
 ];
 
-function VoiceAgent({ onVoiceAction }) {
+function VoiceAgent({ onVoiceAction, cartCount = 0 }) {
   const [isListening, setIsListening] = useState(false);
   const [isVoiceMuted, setIsVoiceMuted] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState('');
   const [finalTranscript, setFinalTranscript] = useState('');
   const [aiResponse, setAiResponse] = useState('');
+  const [suggestedActions, setSuggestedActions] = useState([]);
   const [status, setStatus] = useState('Tap the glowing orb to speak');
   const [inputText, setInputText] = useState('');
 
@@ -141,11 +142,22 @@ function VoiceAgent({ onVoiceAction }) {
     let reply = '';
     let actionType = 'search';
     let actionPayload = '';
+    let nextActions = [];
 
     const budget = extractBudget(q);
 
-    // A. LAPTOP & COMPUTER INQUIRIES WITH BUDGET (e.g. "laptop under 1lakh")
-    if (q.includes('laptop') || q.includes('computer') || q.includes('macbook')) {
+    // 1. CHECKOUT & VIEW CART INTENTS
+    if (q.includes('checkout') || q.includes('view cart') || q.includes('show cart') || q.includes('my cart') || q.includes('place order') || q.includes('bag')) {
+      reply = `Taking you to your shopping bag! You can review your items, apply delivery discounts, and confirm your order.`;
+      actionType = 'view_cart';
+      actionPayload = '';
+      nextActions = [
+        { label: '🛍️ Continue Shopping', action: () => onVoiceAction('category', 'All') }
+      ];
+    }
+
+    // 2. LAPTOP & COMPUTER INQUIRIES WITH BUDGET (e.g. "laptop under 1lakh")
+    else if (q.includes('laptop') || q.includes('computer') || q.includes('macbook')) {
       if (budget) {
         const matchingLaptops = demoProducts.filter(
           (p) => p.category === 'Laptops' && p.price <= budget
@@ -153,22 +165,34 @@ function VoiceAgent({ onVoiceAction }) {
 
         if (matchingLaptops.length > 0) {
           const names = matchingLaptops.map((l) => `${l.name} for ₹${l.price.toLocaleString('en-IN')}`).join(' and ');
-          reply = `Here are our best laptops within your ₹${budget.toLocaleString('en-IN')} budget! I found ${names}. Both are in stock with free express delivery!`;
+          reply = `Here are our best laptops within your ₹${budget.toLocaleString('en-IN')} budget! I found ${names}. You can say "Add HP Pavilion" or tap below.`;
           actionType = 'category';
           actionPayload = 'Laptops';
+          nextActions = matchingLaptops.map(item => ({
+            label: `+ Add ${item.brand} (₹${item.price.toLocaleString('en-IN')})`,
+            action: () => onVoiceAction('add', item.name)
+          }));
         } else {
           reply = `For laptops under ₹${budget.toLocaleString('en-IN')}, check out the HP Pavilion 15 (₹54,990) and ASUS Vivobook 16 OLED (₹74,990).`;
           actionType = 'category';
           actionPayload = 'Laptops';
+          nextActions = [
+            { label: '+ Add HP Pavilion 15', action: () => onVoiceAction('add', 'HP Pavilion 15') },
+            { label: '+ Add ASUS Vivobook 16', action: () => onVoiceAction('add', 'ASUS Vivobook 16') }
+          ];
         }
       } else {
-        reply = `Here are our high-performance laptops: Apple MacBook Air M3, ASUS Vivobook 16 OLED, and HP Pavilion 15.`;
+        reply = `Here are our high-performance laptops: Apple MacBook Air M3, ASUS Vivobook 16 OLED, and HP Pavilion 15. Tap below to add to bag.`;
         actionType = 'category';
         actionPayload = 'Laptops';
+        nextActions = [
+          { label: '+ Add MacBook Air M3', action: () => onVoiceAction('add', 'MacBook Air M3') },
+          { label: '+ Add HP Pavilion 15', action: () => onVoiceAction('add', 'HP Pavilion 15') }
+        ];
       }
     }
 
-    // B. ADD TO CART INTENTS
+    // 3. ADD TO CART INTENTS (Handles multi-item shopping!)
     else if (q.includes('add') || q.includes('buy') || q.includes('order')) {
       const target = demoProducts.find(
         (p) =>
@@ -182,21 +206,26 @@ function VoiceAgent({ onVoiceAction }) {
           (p.name.toLowerCase().includes('macbook') && q.includes('macbook')) ||
           (p.name.toLowerCase().includes('asus') && q.includes('asus')) ||
           (p.name.toLowerCase().includes('puma') && q.includes('puma')) ||
-          (p.name.toLowerCase().includes('watch') && q.includes('watch'))
+          (p.name.toLowerCase().includes('watch') && q.includes('watch')) ||
+          (p.name.toLowerCase().includes('hp') && q.includes('hp'))
       );
 
       if (target) {
-        reply = `Added ${target.name} to your cart for ₹${target.price.toLocaleString('en-IN')}! In stock with free shipping.`;
+        reply = `Added ${target.name} to your shopping bag for ₹${target.price.toLocaleString('en-IN')}! You can keep talking to add more items, or say "Checkout" when ready.`;
         actionType = 'add';
         actionPayload = target.name;
+        nextActions = [
+          { label: '💳 Proceed to Checkout', action: () => onVoiceAction('view_cart') },
+          { label: '🎧 Keep Shopping', action: () => onVoiceAction('category', 'All') }
+        ];
       } else {
-        reply = `I searched for "${rawQuery}". Here are the matching products you can add to cart.`;
+        reply = `I searched for "${rawQuery}". Here are matching products you can add to cart.`;
         actionType = 'search';
         actionPayload = q;
       }
     }
 
-    // C. AVAILABILITY & STOCK CHECKS
+    // 4. AVAILABILITY & STOCK CHECKS
     else if (q.includes('available') || q.includes('in stock') || q.includes('have') || q.includes('is there')) {
       const target = demoProducts.find(
         (p) =>
@@ -216,6 +245,9 @@ function VoiceAgent({ onVoiceAction }) {
         reply = `Yes! ${target.name} is in stock with ${target.stock} units available at ₹${target.price.toLocaleString('en-IN')}. Rated ${target.rating} stars!`;
         actionType = 'search';
         actionPayload = target.name;
+        nextActions = [
+          { label: `+ Add ${target.name} to Bag`, action: () => onVoiceAction('add', target.name) }
+        ];
       } else {
         reply = `I checked our inventory. We have top electronics, smartphones, laptops, and footwear available right now!`;
         actionType = 'category';
@@ -223,16 +255,22 @@ function VoiceAgent({ onVoiceAction }) {
       }
     }
 
-    // D. BUDGET GENERAL SEARCH (e.g. "phones under 20000", "under 15000")
+    // 5. BUDGET GENERAL SEARCH (e.g. "phones under 20000")
     else if (budget) {
       if (q.includes('phone') || q.includes('mobile')) {
         reply = `For smartphones under ₹${budget.toLocaleString('en-IN')}, I recommend the Realme Narzo 70x 5G for ₹11,999 with 120Hz display and 50MP camera!`;
         actionType = 'search';
         actionPayload = 'Realme';
+        nextActions = [
+          { label: '+ Add Realme Narzo 70x', action: () => onVoiceAction('add', 'Realme Narzo 70x') }
+        ];
       } else if (q.includes('headphone')) {
         reply = `For headphones under ₹${budget.toLocaleString('en-IN')}, boAt Rockerz 450 is ₹1,499 with 15-hour battery!`;
         actionType = 'search';
         actionPayload = 'boAt';
+        nextActions = [
+          { label: '+ Add boAt Rockerz 450', action: () => onVoiceAction('add', 'boAt Rockerz 450') }
+        ];
       } else {
         const matches = demoProducts.filter((p) => p.price <= budget);
         reply = `Found ${matches.length} products within your ₹${budget.toLocaleString('en-IN')} budget!`;
@@ -241,26 +279,26 @@ function VoiceAgent({ onVoiceAction }) {
       }
     }
 
-    // E. COMPARISON ("Compare Sony and boAt")
+    // 6. COMPARISON ("Compare Sony and boAt")
     else if (q.includes('compare') || q.includes('vs') || q.includes('difference')) {
-      reply = `Comparing Sony WH-1000XM5 (₹29,990, 4.8★ with Active Noise Canceling) versus boAt Rockerz 450 (₹1,499, 4.2★ budget wireless). Both are ready to order!`;
+      reply = `Comparing Sony WH-1000XM5 (₹29,990, 4.8★ with Active Noise Canceling) versus boAt Rockerz 450 (₹1,499, 4.2★ budget wireless). Both are in stock!`;
       actionType = 'category';
       actionPayload = 'Electronics';
+      nextActions = [
+        { label: '+ Add boAt (₹1,499)', action: () => onVoiceAction('add', 'boAt Rockerz 450') },
+        { label: '+ Add Sony (₹29,990)', action: () => onVoiceAction('add', 'Sony WH-1000XM5') }
+      ];
     }
 
-    // F. BRANDS & SPECIFIC ITEMS
+    // 7. BRANDS & CATEGORIES
     else if (q.includes('sony')) {
-      reply = `Showing Sony: WH-1000XM5 Noise Canceling Headphones (₹29,990) and PlayStation 5 Slim (₹49,990)!`;
+      reply = `Showing Sony: WH-1000XM5 Noise Canceling Headphones and PlayStation 5 Slim!`;
       actionType = 'search';
       actionPayload = 'Sony';
     } else if (q.includes('apple') || q.includes('iphone') || q.includes('macbook')) {
       reply = `Showing Apple devices: iPhone 15 Pro Max, MacBook Air M3, and Apple Watch Ultra 2!`;
       actionType = 'search';
       actionPayload = 'Apple';
-    } else if (q.includes('samsung') || q.includes('galaxy')) {
-      reply = `Here is Samsung Galaxy S24 Ultra with Galaxy AI and 200MP camera for ₹1,29,999.`;
-      actionType = 'search';
-      actionPayload = 'Samsung';
     } else if (q.includes('headphone') || q.includes('audio')) {
       reply = `Showing top headphones from Sony and boAt. Both in stock!`;
       actionType = 'category';
@@ -273,21 +311,14 @@ function VoiceAgent({ onVoiceAction }) {
       reply = `Showing footwear: Nike Air Max 270 (₹12,995) and Puma RS-X retro sneakers (₹7,999)!`;
       actionType = 'category';
       actionPayload = 'Footwear';
-    } else if (q.includes('ps5') || q.includes('playstation')) {
-      reply = `Sony PlayStation 5 Slim is available for ₹49,990 with 1TB SSD and DualSense haptics!`;
-      actionType = 'search';
-      actionPayload = 'PlayStation';
-    } else if (q.includes('watch')) {
-      reply = `Apple Watch Ultra 2 in Titanium is in stock for ₹89,900.`;
-      actionType = 'search';
-      actionPayload = 'Apple Watch';
     } else {
-      reply = `I searched for "${rawQuery}". Here are the matching products from our catalog!`;
+      reply = `I searched for "${rawQuery}". Here are matching items from our store catalog!`;
       actionType = 'search';
       actionPayload = rawQuery;
     }
 
     setAiResponse(reply);
+    setSuggestedActions(nextActions);
     setStatus('🔊 VibeCart AI Speaking (Murf Falcon Voice)');
     speakText(reply);
 
@@ -296,7 +327,7 @@ function VoiceAgent({ onVoiceAction }) {
     }
 
     setTimeout(() => {
-      setStatus('🎙️ Live Voice Ready — Speak again or tap a prompt');
+      setStatus('🎙️ Live Voice Ready — Keep talking or tap an action below');
     }, 5000);
   };
 
@@ -316,6 +347,7 @@ function VoiceAgent({ onVoiceAction }) {
       setInterimTranscript('');
       setFinalTranscript('');
       setAiResponse('');
+      setSuggestedActions([]);
 
       try {
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
@@ -344,6 +376,7 @@ function VoiceAgent({ onVoiceAction }) {
     setFinalTranscript('');
     setInterimTranscript('');
     setAiResponse('');
+    setSuggestedActions([]);
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     setStatus('Cleared. Tap the orb to ask anything.');
   };
@@ -386,7 +419,7 @@ function VoiceAgent({ onVoiceAction }) {
 
       <p className={`voice-status ${isListening ? 'connected' : ''}`}>{status}</p>
 
-      {/* Voice Control Buttons Bar (Pause, Stop/Clear, Mute Audio) */}
+      {/* Voice Control Buttons Bar */}
       <div className="voice-controls-row">
         <button
           className={`control-pill-btn ${isListening ? 'active' : ''}`}
@@ -415,7 +448,7 @@ function VoiceAgent({ onVoiceAction }) {
         </button>
       </div>
 
-      {/* Live Dialogue Card with Streaming Transcription */}
+      {/* Live Dialogue Card with Streaming Transcription & Action Pills */}
       {(interimTranscript || finalTranscript || aiResponse) && (
         <div className="voice-dialog-box">
           {(interimTranscript || finalTranscript) && (
@@ -429,6 +462,24 @@ function VoiceAgent({ onVoiceAction }) {
             <div className="ai-bubble">
               <span className="bubble-label">🤖 VibeCart AI:</span>
               <span className="response-text">{aiResponse}</span>
+            </div>
+          )}
+
+          {/* Contextual Next Steps / Instant Action Buttons */}
+          {suggestedActions && suggestedActions.length > 0 && (
+            <div className="suggested-actions-row">
+              <span className="actions-hint">Suggested next action:</span>
+              <div className="actions-list">
+                {suggestedActions.map((act, i) => (
+                  <button
+                    key={i}
+                    className="action-step-btn"
+                    onClick={act.action}
+                  >
+                    {act.label}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </div>
