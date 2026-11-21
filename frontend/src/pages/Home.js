@@ -39,9 +39,25 @@ function Home({ addToCart }) {
     setTimeout(() => setToast(''), 2500);
   };
 
+  // Connects Voice Assistant speech actions directly to UI state
+  const handleVoiceAction = (action, payload) => {
+    if (action === 'add') {
+      const found = demoProducts.find(p => p.name.toLowerCase().includes(payload.toLowerCase()));
+      if (found) {
+        handleAdd(found);
+      }
+    } else if (action === 'category') {
+      setActiveCategory(payload);
+      setSearch('');
+    } else if (action === 'search') {
+      setActiveCategory('All');
+      setSearch(payload);
+    }
+  };
+
   return (
     <div className="home">
-      <VoiceAgent />
+      <VoiceAgent onVoiceAction={handleVoiceAction} />
 
       <section className="search-section">
         <form className="search-form" onSubmit={handleSearch}>
@@ -51,6 +67,16 @@ function Home({ addToCart }) {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
+          {search && (
+            <button
+              type="button"
+              className="clear-btn"
+              onClick={() => setSearch('')}
+              style={{ background: 'transparent', border: 'none', color: '#999', cursor: 'pointer', paddingRight: '8px' }}
+            >
+              ✕
+            </button>
+          )}
           <button type="submit">Search</button>
         </form>
       </section>
@@ -69,13 +95,20 @@ function Home({ addToCart }) {
 
       <div className="section-header">
         <h3>{activeCategory === 'All' ? '✨ All Products' : `📂 ${activeCategory}`}</h3>
-        <span>{filtered.length} items</span>
+        <span>{filtered.length} items found</span>
       </div>
 
       {filtered.length === 0 ? (
         <div className="no-results">
-          <p style={{fontSize: '2rem', marginBottom: '0.5rem'}}>🔍</p>
-          <p>No products found. Try a different search.</p>
+          <p style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>🔍</p>
+          <p>No products match your search.</p>
+          <button
+            className="shop-btn"
+            style={{ marginTop: '1rem' }}
+            onClick={() => { setSearch(''); setActiveCategory('All'); }}
+          >
+            Reset Filters
+          </button>
         </div>
       ) : (
         <section className="products-grid">
